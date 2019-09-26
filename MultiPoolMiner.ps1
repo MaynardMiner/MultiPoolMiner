@@ -431,7 +431,7 @@ while (-not $API.Stop) {
 
     #Load information about the pools
     if ((Test-Path "Pools" -PathType Container -ErrorAction Ignore) -and (-not $NewPools_Jobs)) { 
-        if ($PoolsRequest = @(Get-ChildItem "Pools" -File | Where-Object { $Config.Pools.$($_.BaseName) -and $Config.ExcludePoolName -inotcontains $_.BaseName } | Where-Object { $Config.PoolName.Count -eq 0 -or $Config.PoolName -contains $_.BaseName } | Sort-Object BaseName)) { 
+        if ($PoolsRequest = @(Get-ChildItem "Pools" -File | Where-Object { $Config.Pools.$($_.BaseName) -and $Config.ExcludePoolName -inotcontains $_.BaseName } | Where-Object { $Config.PoolName.Count -eq 0 -or $Config.PoolName -contains ($_.BaseName.split("-") | Select-Object -first 1) } | Sort-Object BaseName)) { 
             $Config | Add-Member "PoolList" @($PoolsRequest.BaseName) -Force
             Write-Log "Loading pool information ($($Config.PoolList -join '; ')) - this may take a minute or two. "
             $NewPools_Jobs = @(

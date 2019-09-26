@@ -1,5 +1,4 @@
 ﻿using module ..\Include.psm1
-
 param(
     [TimeSpan]$StatSpan,
     [PSCustomObject]$Config
@@ -12,9 +11,9 @@ $PoolAPICurrenciesUri = "https://www.zpool.ca/api/currencies"
 $RetryCount = 3
 $RetryDelay = 11 # Zpool only allows 10 API request per minute (one every 10 seconds)
 
-$Name = $PoolFileName -replace "Coins"
-$NameCoins = "$($Name)Coins"
-$PoolNames = @(@($Name, $NameCoins) | Where-Object {((Test-Path "Pools\$_.ps1" -PathType Leaf -ErrorAction SilentlyContinue) -and (-not $Config.PoolName -or $Config.PoolName -contains $_ -and $Config.ExcludePoolName -notcontains $_))})
+$Name = $PoolFileName
+$NameCoins = $Name.replace("-Algo","-Coin")
+$PoolNames = @(@($Name, $NameCoins) | Where-Object {((Test-Path "Pools\$_.ps1" -PathType Leaf -ErrorAction SilentlyContinue) -and (-not $Config.PoolName -or $Config.PoolName -contains ($_.split("-") | Select-Object -First 1) -and $Config.ExcludePoolName -notcontains ($_.split("-") | Select-Object -first 1)))})
 
 $PoolNames | ForEach-Object {
     $PoolName = $_
