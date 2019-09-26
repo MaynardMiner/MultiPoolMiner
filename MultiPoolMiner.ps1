@@ -283,6 +283,8 @@ while (-not $API.Stop) {
     #Repair the configuration
     $Config | Add-Member $Config_Parameters -ErrorAction Ignore
     $Config | Add-Member Wallets ([PSCustomObject]@{ }) -ErrorAction Ignore
+    if($IsLinux){$Config | Add-Member "OS" "Linux"}
+    if($IsWindows){$Config | Add-Member "OS" "Windows"}
     if ($Wallet -and -not $Config.Wallets.BTC) { $Config.Wallets | Add-Member BTC $Config.Wallet -ErrorAction Ignore }
     if (-not $Config.MinerStatusKey -and $Config.Wallets.BTC) { $Config | Add-Member MinerStatusKey $Config.Wallets.BTC -Force } #for backward compatibility
     $Config | Add-Member Pools ([PSCustomObject]@{ }) -ErrorAction Ignore
