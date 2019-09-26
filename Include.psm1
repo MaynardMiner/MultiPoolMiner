@@ -1051,31 +1051,37 @@ function Get-Device {
     [array]$Devices = $Devices | Where-Object { $_.Type -ne "Cpu" }
 
     $CPUIndex = 0
-    Get-CimInstance -ClassName CIM_Processor | ForEach-Object { 
-        # Vendor and type the same for all CPUs, so there is no need to actually track the extra indexes.  Include them only for compatibility.
-        $CPUInfo = $_ | ConvertTo-Json | ConvertFrom-Json
-        $Device = [PSCustomObject]@{ 
-            Index             = [Int]$Index
-            Vendor            = $CPUInfo.Manufacturer
-            Vendor_ShortName  = $(if ($CPUInfo.Manufacturer -eq "GenuineIntel") { "INTEL" } else { "AMD" })
-            Type_Vendor_Index = $CPUIndex
-            Type              = "Cpu"
-            Type_Index        = $CPUIndex
-            CIM               = $CPUInfo
-            Model             = $CPUInfo.Name
-            Model_Norm        = "$($CPUInfo.Manufacturer)$($CPUInfo.NumberOfCores)CoreCPU"
-        }
-        #Read CPU features
-        $Device | Add-member CpuFeatures ((Get-CpuId).Features | Sort-Object)
-
-        if ((-not $Name) -or ($Name_Devices | Where-Object { ($Device | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) -like ($_ | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) })) { 
-            if ((-not $ExcludeName) -or (-not ($ExcludeName_Devices | Where-Object { ($Device | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) -like ($_ | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) }))) { 
-                $Devices += $Device | Add-Member Name ("{0}#{1:d2}" -f $Device.Type, $Device.Type_Index).ToUpper() -PassThru
+    ## CIM instance does not work for Linux
+    if ($IsWindows) {
+        Get-CimInstance -ClassName CIM_Processor | ForEach-Object { 
+            # Vendor and type the same for all CPUs, so there is no need to actually track the extra indexes.  Include them only for compatibility.
+            $CPUInfo = $_ | ConvertTo-Json | ConvertFrom-Json
+            $Device = [PSCustomObject]@{ 
+                Index             = [Int]$Index
+                Vendor            = $CPUInfo.Manufacturer
+                Vendor_ShortName  = $(if ($CPUInfo.Manufacturer -eq "GenuineIntel") { "INTEL" } else { "AMD" })
+                Type_Vendor_Index = $CPUIndex
+                Type              = "Cpu"
+                Type_Index        = $CPUIndex
+                CIM               = $CPUInfo
+                Model             = $CPUInfo.Name
+                Model_Norm        = "$($CPUInfo.Manufacturer)$($CPUInfo.NumberOfCores)CoreCPU"
             }
-        }
+            #Read CPU features
+            $Device | Add-member CpuFeatures ((Get-CpuId).Features | Sort-Object)
 
-        $CPUIndex++
-        $Index++
+            if ((-not $Name) -or ($Name_Devices | Where-Object { ($Device | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) -like ($_ | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) })) { 
+                if ((-not $ExcludeName) -or (-not ($ExcludeName_Devices | Where-Object { ($Device | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) -like ($_ | Select-Object ($_ | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name)) }))) { 
+                    $Devices += $Device | Add-Member Name ("{0}#{1:d2}" -f $Device.Type, $Device.Type_Index).ToUpper() -PassThru
+                }
+            }
+
+            $CPUIndex++
+            $Index++
+        }
+    }
+    elseif($IsLinux){
+        ## Get CPU information
     }
     $Script:CachedDevices = $Devices
     $Devices

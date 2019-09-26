@@ -143,7 +143,28 @@ param(
     [PSCustomObject]$IntervalMultiplier = [PSCustomObject]@{"EquihashR15053" = 2; "Mtp" = 2; "MtpNicehash" = 2; "ProgPow" = 2; "Rfv2" = 2; "X16r" = 5; "X16Rt" = 3; "X16RtGin" = 3; "X16RtVeil" = 3 } #IntervalMultiplier per Algo, if algo is not listed the default of 1 is used
 )
 
-Clear-Host
+
+## Test commands for linux debugging:
+#$wallet = "1Q24z7gHPDbedkaWDTFqhMF8g7iHMehsCb"
+#$UserName = "aaronsace"
+#$WorkerName = "multipoolminer"
+#$Region = "europe"
+#$Currency = @('btc','usd','eur')
+#$DeviceName = @('nvidia')
+#$PoolName = @('zpool')
+#$Donate = 24
+#$MinerStatusUrl = 'https://multipoolminer.io/monitor/miner.php'
+#$SwitchingPrevention = 2
+
+## User may be using a terminal multiplexer.
+## Clear-Host does not work there.
+## Just adding here for now.
+function Clear-AllHosts {
+    if($ISWindows){Clear-host}
+    elseif($IsLinux){$Host.UI.Write("`e[3;J`e[H`e[2J")}
+}
+
+Clear-AllHosts
 
 $Version = "3.5.2"
 $VersionCompatibility = "3.3.0"
@@ -153,10 +174,17 @@ $ProgressPreference = "silentlyContinue"
 
 Set-Location (Split-Path $MyInvocation.MyCommand.Path)
 
+if($IsWindows) {
 Import-Module NetSecurity -ErrorAction Ignore
 Import-Module Defender -ErrorAction Ignore
 Import-Module "$env:Windir\System32\WindowsPowerShell\v1.0\Modules\NetSecurity\NetSecurity.psd1" -ErrorAction Ignore
 Import-Module "$env:Windir\System32\WindowsPowerShell\v1.0\Modules\Defender\Defender.psd1" -ErrorAction Ignore
+} elseif($Islinux) {
+    ## Start linux startup-
+     # symlink all libs.
+     # export bash folder
+     # copy commandline commands to /usr/bin
+}
 try { 
     Import-Module ThreadJob -ErrorAction Stop
     Set-Alias Start-Job Start-ThreadJob
@@ -191,9 +219,11 @@ Start-Transcript ".\Logs\MultiPoolMiner_$(Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 Write-Log "Starting MultiPoolMiner® v$Version © 2017-$((Get-Date).Year) MultiPoolMiner.io"
 
 #Unblock files
-if (Get-Command "Unblock-File" -ErrorAction Ignore) { Get-ChildItem . -Recurse | Unblock-File }
-if ((Get-Command "Get-MpPreference" -ErrorAction Ignore) -and (Get-MpComputerStatus -ErrorAction Ignore) -and (Get-MpPreference).ExclusionPath -notcontains (Convert-Path .)) { 
-    Start-Process (@{desktop = "powershell"; core = "pwsh" }.$PSEdition) "-Command Import-Module '$env:Windir\System32\WindowsPowerShell\v1.0\Modules\Defender\Defender.psd1'; Add-MpPreference -ExclusionPath '$(Convert-Path .)'" -Verb runAs
+if($IsWindows) {
+    if (Get-Command "Unblock-File" -ErrorAction Ignore) { Get-ChildItem . -Recurse | Unblock-File }
+    if ((Get-Command "Get-MpPreference" -ErrorAction Ignore) -and (Get-MpComputerStatus -ErrorAction Ignore) -and (Get-MpPreference).ExclusionPath -notcontains (Convert-Path .)) { 
+        Start-Process (@{desktop = "powershell"; core = "pwsh" }.$PSEdition) "-Command Import-Module '$env:Windir\System32\WindowsPowerShell\v1.0\Modules\Defender\Defender.psd1'; Add-MpPreference -ExclusionPath '$(Convert-Path .)'" -Verb runAs
+    }
 }
 
 #Initialize the API
@@ -229,7 +259,9 @@ $WorkerNameDonate = "multipoolminer_donate_$Version" -replace '[\W]', '-'
 (Get-Process -Id $PID).PriorityClass = "BelowNormal"
 
 #HWiNFO64 ready? If HWiNFO64 is running it will recreate the reg key automatically
+if($IsWindows) {
 if (Test-Path "HKCU:\Software\HWiNFO64\VSB") { Remove-Item -Path "HKCU:\Software\HWiNFO64\VSB" -Recurse -ErrorAction SilentlyContinue }
+}
 
 if (Test-Path "APIs" -PathType Container -ErrorAction Ignore) { Get-ChildItem "APIs" -File | ForEach-Object { . $_.FullName } }
 
